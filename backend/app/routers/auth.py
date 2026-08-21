@@ -104,18 +104,20 @@ def forgot_password(
         
     token = create_reset_token(str(user.id))
     
-    # Dynamically extract origin/referer from request headers
-    origin = request.headers.get("origin")
-    if origin:
-        frontend_url = origin.rstrip("/")
+    default_frontend_url = os.getenv("FRONTEND_URL", "https://glrattendance.com").rstrip("/")
+    trusted_origins = {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://glrattendance.com",
+        "https://app.taxplanadvisor.in",
+        default_frontend_url,
+    }
+    
+    origin = (request.headers.get("origin") or "").rstrip("/")
+    if origin and (origin in trusted_origins or origin.endswith(".taxplanadvisor.in") or origin.endswith(".glrattendance.com")):
+        frontend_url = origin
     else:
-        referer = request.headers.get("referer")
-        if referer:
-            from urllib.parse import urlparse
-            parsed_uri = urlparse(referer)
-            frontend_url = f"{parsed_uri.scheme}://{parsed_uri.netloc}"
-        else:
-            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        frontend_url = default_frontend_url
             
     reset_link = f"{frontend_url}/reset-password?token={token}"
     
